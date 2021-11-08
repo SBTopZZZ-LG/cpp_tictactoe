@@ -23,26 +23,26 @@ enum Direction
 
 class Block
 {
-    int mark;
+    int mark, streakLength;
     Block *L, *TL, *T, *TR, *R, *BR, *B, *BL;
 
     bool initiateCheck()
     {
         Player player = (Player)mark;
         int score = 1 + (L != nullptr ? L->requestCheck(player, LEFT) : 0) + (R != nullptr ? R->requestCheck(player, RIGHT) : 0);
-        if (score == 3)
+        if (score == streakLength)
             return true;
 
         score = 1 + (TL != nullptr ? TL->requestCheck(player, TOP_LEFT) : 0) + (BR != nullptr ? BR->requestCheck(player, BOTTOM_RIGHT) : 0);
-        if (score == 3)
+        if (score == streakLength)
             return true;
 
         score = 1 + (T != nullptr ? T->requestCheck(player, TOP) : 0) + (B != nullptr ? B->requestCheck(player, BOTTOM) : 0);
-        if (score == 3)
+        if (score == streakLength)
             return true;
 
         score = 1 + (TR != nullptr ? TR->requestCheck(player, TOP_RIGHT) : 0) + (BL != nullptr ? BL->requestCheck(player, BOTTOM_LEFT) : 0);
-        return score == 3;
+        return score == streakLength;
     }
     Block *evaluateDirection(Direction dir)
     {
@@ -70,7 +70,7 @@ class Block
     }
 
 public:
-    Block() : mark(-1), L(nullptr), TL(nullptr), T(nullptr), TR(nullptr), R(nullptr), BR(nullptr), B(nullptr), BL(nullptr) {}
+    Block(int _streakLength) : mark(-1), streakLength(_streakLength), L(nullptr), TL(nullptr), T(nullptr), TR(nullptr), R(nullptr), BR(nullptr), B(nullptr), BL(nullptr) {}
 
     void setLeft(Block *ptr)
     {
@@ -127,18 +127,19 @@ public:
         return 0;
     }
 };
-class Board_3x3
+
+class Board
 {
     std::vector<std::vector<Block *> > board;
     bool active;
-    int winner;
+    int winner, width;
 
     bool setMark(int pos, Player player)
     {
         pos--; // 0-based indexing
 
-        int i = pos / 3;
-        int j = pos - i * 3;
+        int i = pos / width;
+        int j = pos - i * width;
 
         bool result = board[i][j]->setMark(player);
         active = !result;
@@ -153,26 +154,27 @@ class Board_3x3
     }
     bool allFilled()
     {
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 3; j++)
+        for (int i = 0; i < width; i++)
+            for (int j = 0; j < width; j++)
                 if (board.at(i).at(j)->getMark() == -1)
                     return false;
         return true;
     }
 
 public:
-    Board_3x3() : active(1), winner(-1)
+    Board(int _width) : active(1), winner(-1), width(_width)
     {
-        for (int i = 0; i < 3; i++)
+
+        for (int i = 0; i < width; i++)
         {
             std::vector<Block *> temp;
-            for (int j = 0; j < 3; j++)
-                temp.push_back(new Block());
+            for (int j = 0; j < width; j++)
+                temp.push_back(new Block(width));
             board.push_back(temp);
         }
 
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 3; j++)
+        for (int i = 0; i < width; i++)
+            for (int j = 0; j < width; j++)
             {
                 Block *b = board.at(i).at(j);
 
@@ -185,16 +187,16 @@ public:
                 if (i > 0)
                 {
                     b->setTop(board.at(i - 1).at(j));
-                    if (j < 2)
+                    if (j < width - 1)
                         b->setTopRight(board.at(i - 1).at(j + 1));
                 }
-                if (j < 2)
+                if (j < width - 1)
                 {
                     b->setRight(board.at(i).at(j + 1));
-                    if (i < 2)
+                    if (i < width - 1)
                         b->setBottomRight(board.at(i + 1).at(j + 1));
                 }
-                if (i < 2)
+                if (i < width - 1)
                 {
                     b->setBottom(board.at(i + 1).at(j));
                     if (j > 0)
@@ -202,10 +204,10 @@ public:
                 }
             }
     }
-    ~Board_3x3()
+    ~Board()
     {
-        for (int i = 0; i < 3; i++)
-            for (int j = 0; j < 3; j++)
+        for (int i = 0; i < width; i++)
+            for (int j = 0; j < width; j++)
                 delete board[i][j];
     }
 
@@ -217,8 +219,8 @@ public:
     {
         pos--; // 0-based indexing
 
-        int i = pos / 3;
-        int j = pos - i * 3;
+        int i = pos / width;
+        int j = pos - i * width;
 
         return board[i][j]->getMark();
     }
@@ -232,26 +234,28 @@ public:
         return winner;
     }
 
-    friend std::ostream &operator<<(std::ostream &os, Board_3x3 &b);
-    friend std::istream &operator>>(std::istream &is, Board_3x3 &b);
+    friend std::ostream &operator<<(std::ostream &os, Board &b);
+    friend std::istream &operator>>(std::istream &is, Board &b);
 };
-
-std::ostream &operator<<(std::ostream &os, Board_3x3 &b)
+std::ostream &operator<<(std::ostream &os, Board &b)
 {
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < b.width; i++)
     {
-        for (int j = 0; j < 3; j++)
+        for (int j = 0; j < b.width; j++)
         {
-            int mark = b.getMark(1 + j + i * 3);
-            os << (mark == Human ? 'X' : (mark == Computer ? 'O' : '-')) << (j < 2 ? " | " : "");
+            int mark = b.getMark(1 + j + i * b.width);
+            os << (mark == Human ? 'X' : (mark == Computer ? 'O' : '-')) << (j < (b.width - 1) ? " | " : "");
         }
-        os << '\n'
-           << (i < 2 ? "---------\n" : "");
+        os << '\n';
+        for (int _ = 0; _ < 6 + (b.width - 2) * 3 + (b.width - 3); _++)
+            if (i < b.width - 1)
+                os << '-';
+        os << '\n';
     }
 
     return os;
 }
-std::istream &operator>>(std::istream &is, Board_3x3 &b)
+std::istream &operator>>(std::istream &is, Board &b)
 {
     while (1)
     {
@@ -259,7 +263,7 @@ std::istream &operator>>(std::istream &is, Board_3x3 &b)
         std::cout << "\nEnter mark position: ";
         is >> markPos;
 
-        if (markPos > 0 && markPos < 10)
+        if (markPos > 0 && markPos < b.width * b.width + 1)
             if (b.getMark(markPos) == -1)
             {
                 b.setMark(markPos, Human);
@@ -271,5 +275,23 @@ std::istream &operator>>(std::istream &is, Board_3x3 &b)
 
     return is;
 }
+
+class Board_3x3 : public Board
+{
+public:
+    Board_3x3() : Board(3) {}
+};
+
+class Board_4x4 : public Board
+{
+public:
+    Board_4x4() : Board(4) {}
+};
+
+class Board_5x5 : public Board
+{
+public:
+    Board_5x5() : Board(5) {}
+};
 
 #endif
