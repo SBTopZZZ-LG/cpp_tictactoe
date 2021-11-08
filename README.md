@@ -1,3 +1,3 @@
 # TicTacToe game made using C++
 
-![Example](https://i.ibb.co/sPr2gDJ/ezgif-6-992399d9de20.gif)  
+![Example](https://i.ibb.co/KxJf5Vf/ezgif-4-31e63503985b.gif)  
